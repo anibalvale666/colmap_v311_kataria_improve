@@ -1,8 +1,96 @@
-COLMAP
-======
+# Colmap Mejorado con Cambios del Paper Kataria
 
-About
------
+Esta es una versión mejorada de **Colmap** basada en los cambios descritos en el paper *"Improving Structure from Motion with Reliable Resectioning"* de Kataria et al. La versión base de Colmap utilizada es la **v11** que al momento de realizar este trabajo y de subir el codigo es la mas actual, con mejoras que incluyen la optimización de la reconstrucción mediante reducción de puntos redundantes y la eliminación de estructuras ambiguas.
+
+A continuación, se describen los pasos para instalar y ejecutar esta versión mejorada en **Google Colab**.
+
+---
+
+## Requisitos
+Antes de comenzar, asegúrate de contar con:
+- Una cuenta de **Google** para acceder a **Colab**.
+- Acceso a Google Colab (puedes usar la versión gratuita o Pro para obtener más recursos).
+- Archivos de imágenes para la reconstrucción 3D.
+
+---
+
+## Pasos de Instalación en Google Colab
+
+### 1. Clonar el Repositorio
+Ejecuta el siguiente comando para clonar el repositorio con la versión modificada de Colmap:
+```bash
+!git https://github.com/anibalvale666/colmap_v311_kataria_improve.git
+
+
+
+# Instalacion de dependencias
+!sudo apt-get install \
+    git \
+    cmake \
+    ninja-build \
+    build-essential \
+    libboost-program-options-dev \
+    libboost-filesystem-dev \
+    libboost-graph-dev \
+    libboost-system-dev \
+    libboost-test-dev \
+    libeigen3-dev \
+    libflann-dev \
+    libfreeimage-dev \
+    libmetis-dev \
+    libgoogle-glog-dev \
+    libgflags-dev \
+    libgtest-dev \
+    libgmock-dev \
+    libsqlite3-dev \
+    libglew-dev \
+    qtbase5-dev \
+    libqt5opengl5-dev \
+    libcgal-dev \
+    libceres-dev \
+    libjsoncpp-dev -y
+
+# Compilar colmap
+%cd /content/colmap
+!mkdir build
+%cd build
+!cmake .. -GNinja
+!ninja
+!sudo ninja install
+
+
+# Paso 1: Extracción de características
+!colmap feature_extractor --database_path {database_path} --image_path {input_path} --output_path {output_path}
+
+# Paso 2: Matching de características
+!colmap exhaustive_matcher --database_path {database_path}
+
+# Paso 3: Reconstrucción (integrando cambios del paper)
+!colmap mapper --database_path {database_path} --image_path {input_path} --output_path {output_path}/sparse
+
+
+
+# Paso 4 OPCIONAL: Reconstruccion de Mallas
+!colmap image_undistorter \
+    --image_path {input_path} \
+    --input_path {output_path}/sparse \
+    --output_path {output_path}/dense \
+    --output_type COLMAP
+
+!colmap patch_match_stereo \
+    --workspace_path {output_path}/dense \
+    --workspace_format COLMAP \
+    --PatchMatchStereo.geom_consistency true
+
+!colmap stereo_fusion \
+    --workspace_path {output_path}/dense \
+    --workspace_format COLMAP \
+    --input_type geometric \
+    --output_path {output_path}/dense/fused.ply
+
+```
+
+ACERCA DE COLMAP
 
 COLMAP is a general-purpose Structure-from-Motion (SfM) and Multi-View Stereo
 (MVS) pipeline with a graphical and command-line interface. It offers a wide
@@ -24,81 +112,17 @@ your research, please cite:
         year={2016},
     }
 
-If you use the image retrieval / vocabulary tree engine, please also cite:
-
-    @inproceedings{schoenberger2016vote,
-        author={Sch\"{o}nberger, Johannes Lutz and Price, True and Sattler, Torsten and Frahm, Jan-Michael and Pollefeys, Marc},
-        title={A Vote-and-Verify Strategy for Fast Spatial Verification in Image Retrieval},
-        booktitle={Asian Conference on Computer Vision (ACCV)},
-        year={2016},
+    @INPROCEEDINGS{9320437,
+      author={Kataria, Rajbir and DeGol, Joseph and Hoiem, Derek},
+      booktitle={2020 International Conference on 3D Vision (3DV)}, 
+      title={Improving Structure from Motion with Reliable Resectioning}, 
+      year={2020},
+      volume={},
+      number={},
+      pages={41-50},
+      keywords={Image reconstruction;Feature extraction;Tracking;Structure from motion;Pose estimation;Visualization;Robustness;Structure from motion;SfM;Geometry},
+      doi={10.1109/3DV50981.2020.00014}
     }
-
-The latest source code is available at https://github.com/colmap/colmap. COLMAP
-builds on top of existing works and when using specific algorithms within
-COLMAP, please also cite the original authors, as specified in the source code,
-and consider citing relevant third-party dependencies (most notably
-ceres-solver, poselib, sift-gpu, vlfeat).
-
-
-Download
---------
-
-* Binaries for **Windows** and other resources can be downloaded
-  from https://github.com/colmap/colmap/releases.
-* Binaries for **Linux/Unix/BSD** are available at
-  https://repology.org/metapackage/colmap/versions.
-* Pre-built **Docker** images are available at
-  https://hub.docker.com/r/colmap/colmap.
-* **Python bindings** are available at https://pypi.org/project/pycolmap.
-* To **build from source**, please see https://colmap.github.io/install.html.
-
-
-Getting Started
----------------
-
-1. Download pre-built binaries or build from source.
-2. Download one of the provided datasets at https://demuc.de/colmap/datasets/
-   or use your own images.
-3. Use the **automatic reconstruction** to easily build models
-   with a single click or command.
-
-
-Documentation
--------------
-
-The documentation is available at https://colmap.github.io/.
-
-
-Support
--------
-
-Please, use GitHub Discussions at https://github.com/colmap/colmap/discussions
-for questions and the GitHub issue tracker at https://github.com/colmap/colmap
-for bug reports, feature requests/additions, etc.
-
-
-Acknowledgments
----------------
-
-COLMAP was originally written by [Johannes Schönberger](https://demuc.de/) with
-funding provided by his PhD advisors Jan-Michael Frahm and Marc Pollefeys.
-
-The Python bindings in PyCOLMAP were originally added by
-[Mihai Dusmanu](https://github.com/mihaidusmanu),
-[Philipp Lindenberger](https://github.com/Phil26AT), and
-[Paul-Edouard Sarlin](https://github.com/Skydes).
-
-The project has also benefitted from countless community contributions, including
-bug fixes, improvements, new features, third-party tooling, and community
-support (special credits to [Torsten Sattler](https://tsattler.github.io)).
-
-
-Contribution
-------------
-
-Contributions (bug reports, bug fixes, improvements, etc.) are very welcome and
-should be submitted in the form of new issues and/or pull requests on GitHub.
-
 
 License
 -------
